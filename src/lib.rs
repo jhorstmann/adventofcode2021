@@ -11,6 +11,7 @@ pub enum Error {
     ParseFloat(std::num::ParseFloatError),
     ParseUtf8(Utf8Error),
     General(String),
+    EmptyIterator,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -53,6 +54,7 @@ impl Display for Error {
             Error::ParseFloat(e) => f.write_fmt(format_args!("Parse: {}", e)),
             Error::ParseUtf8(e) => f.write_fmt(format_args!("Parse: {}", e)),
             Error::General(s) => f.write_fmt(format_args!("General: {}", s)),
+            Error::EmptyIterator => f.write_str("Empty iterator"),
         }
     }
 }
