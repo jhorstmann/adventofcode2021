@@ -50,7 +50,7 @@ fn solve(lines: &[(Point, Point)], width: usize, height: usize, only_horz_or_ver
 pub fn main() -> Result<()> {
     let data = include_str!("../../data/a5_input.txt");
 
-    let pattern = regex!(r"(\d+),(\d+) *-> *(\d+),(\d+)");
+    let pattern = regex!(r"^(\d+),(\d+) *-> *(\d+),(\d+)$");
 
     let lines = data
         .lines()
