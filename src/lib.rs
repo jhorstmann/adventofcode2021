@@ -11,6 +11,7 @@ pub enum Error {
     ParseFloat(std::num::ParseFloatError),
     ParseUtf8(Utf8Error),
     General(String),
+    PatternMatch,
     EmptyIterator,
 }
 
@@ -54,6 +55,7 @@ impl Display for Error {
             Error::ParseFloat(e) => f.write_fmt(format_args!("Parse: {}", e)),
             Error::ParseUtf8(e) => f.write_fmt(format_args!("Parse: {}", e)),
             Error::General(s) => f.write_fmt(format_args!("General: {}", s)),
+            Error::PatternMatch => f.write_str("Pattern mismatch"),
             Error::EmptyIterator => f.write_str("Empty iterator"),
         }
     }
@@ -68,13 +70,21 @@ pub fn read_lines(file: &str) -> Result<Vec<String>> {
     Ok(br.lines().collect::<std::io::Result<Vec<String>>>()?)
 }
 
+#[macro_export]
+macro_rules! regex {
+    ($re:literal $(,)?) => {{
+        static RE: ::once_cell::sync::OnceCell<::regex::Regex> = ::once_cell::sync::OnceCell::new();
+        RE.get_or_init(|| ::regex::Regex::new($re).expect("invalid regex"))
+    }};
+}
+
+
 pub mod prelude {
     pub use super::read_lines;
     pub use super::Error;
     pub use super::Result;
+    pub use super::regex;
     pub use std::str::FromStr;
 
-    // pub use super::regex;
-
-    // pub use regex::Regex;
+    pub use regex::Regex;
 }

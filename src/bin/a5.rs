@@ -6,14 +6,14 @@ struct Point {
     y: i32,
 }
 
-fn solve(lines: &[(Point, Point)], width: usize, height: usize, only_straight: bool, print_map: bool) -> usize {
+fn solve(lines: &[(Point, Point)], width: usize, height: usize, only_horz_or_vert: bool, print_map: bool) -> usize {
     let mut map = vec![vec![0_usize; width as usize]; height as usize];
 
     for l in lines.iter() {
         let dx = (l.1.x - l.0.x).signum();
         let dy = (l.1.y - l.0.y).signum();
 
-        if !only_straight || (dx == 0 || dy == 0) {
+        if !only_horz_or_vert || (dx == 0 || dy == 0) {
             let mut x = l.0.x;
             let mut y = l.0.y;
             loop {
@@ -49,26 +49,20 @@ fn solve(lines: &[(Point, Point)], width: usize, height: usize, only_straight: b
 
 pub fn main() -> Result<()> {
     let data = include_str!("../../data/a5_input.txt");
+
+    let pattern = regex!(r"(\d+),(\d+) *-> *(\d+),(\d+)");
+
     let lines = data
         .lines()
         .map(|l| {
-            let mut split = l.split_ascii_whitespace();
-            let start = split.next().ok_or(Error::EmptyIterator)?;
-            let start = {
-                let (x, y) = start.split_once(",").ok_or(Error::General("Invalid point".into()))?;
-                Point {
-                    x: x.parse()?,
-                    y: y.parse()?,
-                }
+            let captures = pattern.captures(l).ok_or(Error::PatternMatch)?;
+            let start = Point {
+                x: captures.get(1).unwrap().as_str().parse()?,
+                y: captures.get(2).unwrap().as_str().parse()?,
             };
-            let _ = split.next().ok_or(Error::EmptyIterator);
-            let end = split.next().ok_or(Error::EmptyIterator)?;
-            let end = {
-                let (x, y) = end.split_once(",").ok_or(Error::General("Invalid point".into()))?;
-                Point {
-                    x: x.parse()?,
-                    y: y.parse()?,
-                }
+            let end = Point {
+                x: captures.get(3).unwrap().as_str().parse()?,
+                y: captures.get(4).unwrap().as_str().parse()?,
             };
             if end.x < start.x {
                 Ok((end, start))
