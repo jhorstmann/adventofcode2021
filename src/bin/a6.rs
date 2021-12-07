@@ -1,3 +1,4 @@
+#![feature(core_intrinsics)]
 use adventofcode2021::prelude::*;
 
 fn part1(ages: &[u32], days: i32) -> usize {
@@ -24,14 +25,18 @@ fn part1(ages: &[u32], days: i32) -> usize {
 fn part2(ages: &[u32], days: usize) -> usize {
     let mut histogram = [0_usize; 9];
     for age in ages.iter() {
+        unsafe { std::intrinsics::assume((*age as usize) < histogram.len()); }
         histogram[*age as usize] += 1;
     }
 
     for _day in 0..days {
         let mut count = histogram[0];
-        for i in 1..histogram.len() {
-            histogram[i - 1] = histogram[i]
+        unsafe {
+            std::ptr::copy(histogram.as_ptr().add(1), histogram.as_mut_ptr(), 8)
         }
+        // for i in 1..histogram.len() {
+        //     histogram[i - 1] = histogram[i]
+        // }
         histogram[6] += count;
         histogram[8] = count;
     }
