@@ -27,6 +27,40 @@ fn parse<const N: usize>(input: &str) -> Result<[u8; N]> {
     Ok(result)
 }
 
+fn part1(lines: &[Input]) -> usize {
+    lines
+        .iter()
+        .flat_map(|input| input.output_values.iter())
+        .filter(|v| {
+            let segments = v.count_ones();
+            segments == 2 || segments == 4 || segments == 3 || segments == 7
+        })
+        .count()
+}
+
+fn part2_line(input: &Input) -> Result<u32> {
+    let one = *input.patterns.iter().find(|m| m.count_ones() == 2).ok_or(Error::General("one".into()))?;
+    let seven = *input.patterns.iter().find(|m| m.count_ones() == 3).ok_or(Error::General("seven".into()))?;
+    let eight = *input.patterns.iter().find(|m| m.count_ones() == 7).ok_or(Error::General("eight".into()))?;
+    let four = *input.patterns.iter().find(|m| m.count_ones() == 4).ok_or(Error::General("four".into()))?;
+    let zero = *input.patterns.iter().find(|m| m.count_ones() == 6 && (**m & !seven).count_ones() == 3 && (**m & !four).count_ones()==3).ok_or(Error::General("zero".into()))?;
+    let three = *input.patterns.iter().find(|m| m.count_ones() == 5 && (**m & !seven).count_ones() == 2).ok_or(Error::General("three".into()))?;
+    let nine = *input.patterns.iter().find(|m| m.count_ones() == 6 && (**m & seven).count_ones() == 3 && (**m & !four).count_ones()==2).ok_or(Error::General("nine".into()))?;
+    let six = *input.patterns.iter().find(|m| m.count_ones() == 6 && (**m & one).count_ones() == 1).ok_or(Error::General("six".into()))?;
+    let five = *input.patterns.iter().find(|m| m.count_ones() == 5 && (**m & one).count_ones() == 1 && (**m & four).count_ones() == 3).ok_or(Error::General("five".into()))?;
+    let two = *input.patterns.iter().find(|m| m.count_ones() == 5 && (**m & one).count_ones() == 1 && (**m & four).count_ones() == 2).ok_or(Error::General("two".into()))?;
+
+    let numbers = [zero, one, two, three, four, five, six, seven, eight, nine];
+
+    let result = input.output_values.iter().try_fold(0_u32, |a, m| -> Result<u32> {
+        let digit_pos = numbers.iter().position(|n| *n == *m).ok_or(Error::EmptyIterator)?;
+        Ok(a*10 + digit_pos as u32)
+    })?;
+
+    Ok(result)
+
+}
+
 pub fn main() -> Result<()> {
     let lines = include_str!("../../data/a8_input.txt")
         .lines()
@@ -40,21 +74,14 @@ pub fn main() -> Result<()> {
         })
         .collect::<Result<Vec<_>>>()?;
 
-    let part1 = lines
-        .iter()
-        .map(|input| {
-            input
-                .output_values
-                .iter()
-                .filter(|v| {
-                    let segments = v.count_ones();
-                    segments == 2 || segments == 4 || segments == 3 || segments == 7
-                })
-                .count()
-        })
-        .sum::<usize>();
+    println!("Part1: {}", part1(&lines));
 
-    println!("Part1: {}", part1);
+    let part2 = lines.iter().try_fold(0_u32,|sum, l| -> Result<u32>{
+        let num = part2_line(l)?;
+        Ok(sum + num)
+    })?;
+
+    println!("Part2: {}", part2);
 
     Ok(())
 }
