@@ -150,9 +150,11 @@ pub fn main() -> Result<()> {
     }).map(|missing_chars| {
         score_part2(missing_chars.as_bytes())
     }).collect::<Vec<u64>>();
-    part2_scores.sort();
 
-    println!("Part2: {}", part2_scores[part2_scores.len()/2]);
+    let mid = part2_scores.len() / 2;
+    let (_, part2, _) = part2_scores.select_nth_unstable(mid);
+
+    println!("Part2: {}", *part2);
 
     Ok(())
 
