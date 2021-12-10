@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter, Write};
 use adventofcode2021::prelude::*;
 
 enum SyntaxError {
@@ -6,17 +7,29 @@ enum SyntaxError {
 }
 
 struct Chunk {
-    #[allow(unused)]
     start_char: u8,
+    end_char: u8,
     children: Vec<Chunk>,
 }
 
 impl Chunk {
-    fn new(start_char: u8) -> Self {
+    fn new(start_char: u8, end_char: u8) -> Self {
         Self {
             start_char,
+            end_char,
             children: vec![]
         }
+    }
+}
+
+impl Display for Chunk {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_char(self.start_char as char)?;
+        for chunk in self.children.iter() {
+            chunk.fmt(f)?;
+        }
+        f.write_char(self.end_char as char)?;
+        Ok(())
     }
 }
 
@@ -47,12 +60,28 @@ fn score(ch: u8) -> u64 {
     }
 }
 
-fn parse_chunk(start_char: u8, mut line: &[u8]) -> std::result::Result<(&[u8], Chunk), SyntaxError> {
+fn score_part2(chars: &[u8]) -> u64 {
+    chars.iter().fold(0_u64, |a, ch| {
+        a * 5 + match *ch {
+            b')' => 1,
+            b']' => 2,
+            b'}' => 3,
+            b'>' => 4,
+            _ => unreachable!("invalid character for score: {}", *ch as char)
+        }
+    })
+}
+
+fn parse_chunk(start_char: u8, mut line: &[u8], recover: bool) -> std::result::Result<(&[u8], Chunk), SyntaxError> {
     let end_char = closing_delimiter(start_char).ok_or(SyntaxError::UnexpectedChar(start_char))?;
     if line.is_empty() {
-        return Err(SyntaxError::Incomplete(end_char))
+        if recover {
+            return Ok((line, Chunk::new(start_char, end_char)));
+        } else {
+            return Err(SyntaxError::Incomplete(end_char))
+        }
     }
-    let mut chunk = Chunk::new(start_char);
+    let mut chunk = Chunk::new(start_char, end_char);
     while let Some((first, rest)) = line.split_first() {
         if *first == end_char {
             line = rest;
@@ -60,7 +89,7 @@ fn parse_chunk(start_char: u8, mut line: &[u8]) -> std::result::Result<(&[u8], C
         } else if is_closing_delimiter(*first) {
             return Err(SyntaxError::UnexpectedChar(*first))
         } else {
-            let (rest, nested_chunk) = parse_chunk(*first, rest)?;
+            let (rest, nested_chunk) = parse_chunk(*first, rest, recover)?;
             line = rest;
             chunk.children.push(nested_chunk);
         }
@@ -68,11 +97,11 @@ fn parse_chunk(start_char: u8, mut line: &[u8]) -> std::result::Result<(&[u8], C
     Ok((line, chunk))
 }
 
-fn parse_line(line: &[u8]) -> std::result::Result<Vec<Chunk>, SyntaxError> {
+fn parse_line(line: &[u8], recover: bool) -> std::result::Result<Vec<Chunk>, SyntaxError> {
     let mut chunks = vec![];
     let mut line = line;
     while let Some((first, rest)) = line.split_first() {
-        let (rest, chunk) = parse_chunk(*first, rest)?;
+        let (rest, chunk) = parse_chunk(*first, rest, recover)?;
         line = rest;
         chunks.push(chunk);
     }
@@ -81,19 +110,20 @@ fn parse_line(line: &[u8]) -> std::result::Result<Vec<Chunk>, SyntaxError> {
 
 pub fn main() -> Result<()> {
 
-    let data = include_str!("../../data/a10_example.txt");
+    let data = include_str!("../../data/a10_input.txt");
 
     data.lines().for_each(|line| {
-        print!("{}: ", line);
-        match parse_line(line.as_bytes()) {
-            Ok(_chunks) => println!("Ok"),
-            Err(SyntaxError::Incomplete(ch)) => println!("Missing {}", ch as char),
-            Err(SyntaxError::UnexpectedChar(ch)) => println!("Unexpected {}", ch as char),
+        eprint!("{}: ", line);
+        match parse_line(line.as_bytes(), false) {
+            Ok(_chunks) => eprintln!("Ok"),
+            Err(SyntaxError::Incomplete(ch)) => eprintln!("Missing {}", ch as char),
+            Err(SyntaxError::UnexpectedChar(ch)) => eprintln!("Unexpected {}", ch as char),
         }
     });
+    eprintln!();
 
     let part1 = data.lines().map(|line| {
-        match parse_line(line.as_bytes()) {
+        match parse_line(line.as_bytes(), false) {
             Ok(_chunks) => 0_u64,
             Err(SyntaxError::Incomplete(_)) => 0_u64,
             Err(SyntaxError::UnexpectedChar(ch)) => score(ch),
@@ -101,6 +131,28 @@ pub fn main() -> Result<()> {
     }).sum::<u64>();
 
     println!("Part1: {}", part1);
+
+    let mut part2_scores = data.lines().filter_map(|line| {
+        match parse_line(line.as_bytes(), true) {
+            Ok(chunks) => {
+                let formatted = chunks.iter().map(|chunk| chunk.to_string()).collect::<String>();
+                if formatted.len() == line.len() {
+                    eprintln!("Ok");
+                    None
+                } else {
+                    eprintln!("Recovered {} to {}", line, &formatted);
+                    Some(formatted[line.len()..].to_string())
+                }
+            },
+            Err(SyntaxError::Incomplete(ch)) => panic!("Missing {} (SHOULDN'T HAPPEN IN RECOVERY MODE)", ch as char),
+            Err(SyntaxError::UnexpectedChar(_)) => None,
+        }
+    }).map(|missing_chars| {
+        score_part2(missing_chars.as_bytes())
+    }).collect::<Vec<u64>>();
+    part2_scores.sort();
+
+    println!("Part2: {}", part2_scores[part2_scores.len()/2]);
 
     Ok(())
 
