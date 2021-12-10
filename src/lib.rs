@@ -70,6 +70,26 @@ pub fn read_lines(file: &str) -> Result<Vec<String>> {
     Ok(br.lines().collect::<std::io::Result<Vec<String>>>()?)
 }
 
+pub fn relative_index2d<T>(data: &[impl AsRef<[T]>], row: usize, col: usize, delta_row: isize, delta_col: isize) -> Option<&T> {
+    let y = (row as isize) + delta_col;
+    let x = (col as isize) + delta_row;
+    index2d(data, y, x)
+}
+
+pub fn index2d<T>(data: &[impl AsRef<[T]>], row: isize, col: isize) -> Option<&T> {
+    let (y, x) = (row, col);
+    if y >= 0 && (y as usize) < data.len() {
+        let row = data[y as usize].as_ref();
+        if x >= 0 && (x as usize) < row.len() {
+            Some(&row[x as usize])
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
+
 #[macro_export]
 macro_rules! regex {
     ($re:literal $(,)?) => {{
@@ -81,6 +101,7 @@ macro_rules! regex {
 
 pub mod prelude {
     pub use super::read_lines;
+    pub use super::relative_index2d;
     pub use super::Error;
     pub use super::Result;
     pub use super::regex;

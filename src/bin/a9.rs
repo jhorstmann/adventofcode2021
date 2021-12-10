@@ -38,22 +38,16 @@ pub fn main() -> Result<()> {
 
     let mut risk = 0_u64;
     let mut basins = vec![];
-    for y in 0..height as isize {
-        for x in 0..width as isize {
-            let h = map[y as usize][x as usize] as u64;
-            if DIR.iter().all(|(dx, dy)| {
-                match map
-                    .get((y + *dy) as usize)
-                    .map(|row| row.get((x + *dx) as usize))
-                    .flatten()
-                {
-                    Some(h2) if *h2 as u64 > h => true,
-                    None => true,
-                    _ => false,
-                }
+    for y in 0..height {
+        for x in 0..width {
+            let h = map[y][x] as u64;
+            if DIR.iter().all(|(dx, dy)| match relative_index2d(&map, y, x, *dy, *dx) {
+                Some(h2) if *h2 as u64 > h => true,
+                None => true,
+                _ => false,
             }) {
                 risk += h + 1;
-                basins.push((x as usize, y as usize));
+                basins.push((x, y));
             }
         }
     }
@@ -68,10 +62,7 @@ pub fn main() -> Result<()> {
     }
 
     sizes.sort();
-    let part2 = sizes.iter().rev().take(3).fold(1_usize, |mut a, s| {
-        a *= s;
-        a
-    });
+    let part2 = sizes.iter().rev().take(3).product::<usize>();
 
     println!("Part2: {}", part2);
 
