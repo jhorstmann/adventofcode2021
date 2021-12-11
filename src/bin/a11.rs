@@ -5,39 +5,12 @@ const HEIGHT: usize = 10;
 
 const DIR: [(isize, isize); 8] = [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)];
 
-fn index_relative<T>(map: &[T], y: usize, x: usize, dy: isize, dx: isize) -> Option<&T> {
-    let y = (y as isize) + dy;
-    let x = (x as isize) + dx;
-    index(map, y, x)
-}
-
-fn index<T>(map: &[T], y: isize, x: isize) -> Option<&T> {
-    if y >= 0 && (y as usize) < HEIGHT && x >= 0 && (x as usize) < WIDTH {
-        Some(&map[(y as usize) * WIDTH + (x as usize)])
-    } else {
-        None
-    }
-}
-
-fn index_relative_mut<T>(map: &mut [T], y: usize, x: usize, dy: isize, dx: isize) -> Option<&mut T> {
-    let y = (y as isize) + dy;
-    let x = (x as isize) + dx;
-    index_mut(map, y, x)
-}
-
-fn index_mut<T>(map: &mut [T], y: isize, x: isize) -> Option<&mut T> {
-    if y >= 0 && (y as usize) < HEIGHT && x >= 0 && (x as usize) < WIDTH {
-        Some(&mut map[(y as usize) * WIDTH + (x as usize)])
-    } else {
-        None
-    }
-}
-
-fn print_map(map: &[usize]) {
+#[allow(unused)]
+fn print_map(map: &[u8]) {
     for y in 0..HEIGHT {
         for x in 0..WIDTH {
             let level = map[y * WIDTH + x];
-            eprint!("{}", if level > 9 { '#' } else { ((level as u8) + b'0') as char })
+            eprint!("{}", if level > 9 { '#' } else { (level + b'0') as char })
         }
         eprintln!();
     }
@@ -45,7 +18,11 @@ fn print_map(map: &[usize]) {
 }
 
 pub fn main() -> Result<()> {
-    let mut map = include_str!("../../data/a11_input.txt").trim().bytes().filter_map(|b| if b == b'\n' { None } else { Some((b - b'0') as usize) }).collect::<Vec<_>>();
+    let mut map = include_str!("../../data/a11_input.txt")
+        .trim()
+        .bytes()
+        .filter_map(|b| if b == b'\n' { None } else { Some(b - b'0') })
+        .collect::<Vec<_>>();
 
     assert_eq!(map.len(), WIDTH * HEIGHT);
 
@@ -53,7 +30,6 @@ pub fn main() -> Result<()> {
 
     let mut step = 0;
     loop {
-        // new_map.fill(0);
         map.iter_mut().for_each(|level| *level += 1);
         let mut flashed = [[false; WIDTH]; HEIGHT];
         loop {
@@ -69,23 +45,25 @@ pub fn main() -> Result<()> {
                         total_flashes += 1;
 
                         DIR.iter().copied().for_each(|(dx, dy)| {
-                            if let Some(level) = index_relative_mut(&mut map, y, x, dy, dx) {
-                                *level += 1;
+                            if let Some(level) = get_2d_relative_mut::<_, WIDTH>(&mut map, y, x, dy, dx) {
+                                *level = (*level + 1).min(10);
                             }
                         });
                     }
                 }
             }
 
-            // std::mem::swap(&mut map, &mut new_map);
-
             if !any_flashed {
                 break;
             }
         }
-        // eprintln!("After Step {}", step);
+
         // print_map(&map);
-        map.iter_mut().for_each(|level| if *level >= 10 { *level = 0 });
+        map.iter_mut().for_each(|level| {
+            if *level >= 10 {
+                *level = 0
+            }
+        });
 
         step += 1;
         if step == 100 {

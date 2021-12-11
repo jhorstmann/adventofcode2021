@@ -70,13 +70,13 @@ pub fn read_lines(file: &str) -> Result<Vec<String>> {
     Ok(br.lines().collect::<std::io::Result<Vec<String>>>()?)
 }
 
-pub fn relative_index2d<T>(data: &[impl AsRef<[T]>], row: usize, col: usize, delta_row: isize, delta_col: isize) -> Option<&T> {
+pub fn get_nested_relative<T>(data: &[impl AsRef<[T]>], row: usize, col: usize, delta_row: isize, delta_col: isize) -> Option<&T> {
     let y = (row as isize) + delta_col;
     let x = (col as isize) + delta_row;
-    index2d(data, y, x)
+    get_nested(data, y, x)
 }
 
-pub fn index2d<T>(data: &[impl AsRef<[T]>], row: isize, col: isize) -> Option<&T> {
+pub fn get_nested<T>(data: &[impl AsRef<[T]>], row: isize, col: isize) -> Option<&T> {
     let (y, x) = (row, col);
     if y >= 0 && (y as usize) < data.len() {
         let row = data[y as usize].as_ref();
@@ -85,6 +85,38 @@ pub fn index2d<T>(data: &[impl AsRef<[T]>], row: isize, col: isize) -> Option<&T
         } else {
             None
         }
+    } else {
+        None
+    }
+}
+
+pub fn get_2d_relative<T, const W: usize>(map: &[T], y: usize, x: usize, dy: isize, dx: isize) -> Option<&T> {
+    let y = (y as isize) + dy;
+    let x = (x as isize) + dx;
+    get_2d::<T, W>(map, y, x)
+}
+
+pub fn get_2d<T, const W: usize>(map: &[T], y: isize, x: isize) -> Option<&T> {
+    debug_assert!(map.len() % W == 0);
+    let height = map.len() / W;
+    if y >= 0 && (y as usize) < height && x >= 0 && (x as usize) < W {
+        Some(&map[(y as usize) * W + (x as usize)])
+    } else {
+        None
+    }
+}
+
+pub fn get_2d_relative_mut<T, const W: usize>(map: &mut [T], y: usize, x: usize, dy: isize, dx: isize) -> Option<&mut T> {
+    let y = (y as isize) + dy;
+    let x = (x as isize) + dx;
+    get_2d_mut::<T, W>(map, y, x)
+}
+
+pub fn get_2d_mut<T, const W: usize>(map: &mut [T], y: isize, x: isize) -> Option<&mut T> {
+    debug_assert!(map.len() % W == 0);
+    let height = map.len() / W;
+    if y >= 0 && (y as usize) < height && x >= 0 && (x as usize) < W {
+        Some(&mut map[(y as usize) * W + (x as usize)])
     } else {
         None
     }
@@ -100,8 +132,7 @@ macro_rules! regex {
 
 
 pub mod prelude {
-    pub use super::read_lines;
-    pub use super::relative_index2d;
+    pub use super::*;
     pub use super::Error;
     pub use super::Result;
     pub use super::regex;

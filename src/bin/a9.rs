@@ -41,7 +41,7 @@ pub fn main() -> Result<()> {
     for y in 0..height {
         for x in 0..width {
             let h = map[y][x] as u64;
-            if DIR.iter().all(|(dx, dy)| match relative_index2d(&map, y, x, *dy, *dx) {
+            if DIR.iter().all(|(dx, dy)| match get_nested_relative(&map, y, x, *dy, *dx) {
                 Some(h2) if *h2 as u64 > h => true,
                 None => true,
                 _ => false,
