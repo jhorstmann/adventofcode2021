@@ -46,15 +46,13 @@ fn print_map(map: &[usize]) {
 
 pub fn main() -> Result<()> {
     let mut map = include_str!("../../data/a11_input.txt").trim().bytes().filter_map(|b| if b == b'\n' { None } else { Some((b - b'0') as usize) }).collect::<Vec<_>>();
+
     assert_eq!(map.len(), WIDTH * HEIGHT);
-
-    print_map(&map);
-
-    let mut new_map = vec![0; WIDTH * HEIGHT];
 
     let mut total_flashes = 0_usize;
 
-    for step in 1..=100 {
+    let mut step = 0;
+    loop {
         // new_map.fill(0);
         map.iter_mut().for_each(|level| *level += 1);
         let mut flashed = [[false; WIDTH]; HEIGHT];
@@ -88,10 +86,17 @@ pub fn main() -> Result<()> {
         // eprintln!("After Step {}", step);
         // print_map(&map);
         map.iter_mut().for_each(|level| if *level >= 10 { *level = 0 });
+
+        step += 1;
+        if step == 100 {
+            println!("Part1: {}", total_flashes);
+        }
+
+        if flashed.iter().all(|row| row.iter().all(|flashed| *flashed)) {
+            println!("Part2: {}", step);
+            break;
+        }
     }
-
-    println!("Part1: {}", total_flashes);
-
 
     Ok(())
 }
