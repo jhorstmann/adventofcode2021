@@ -18,13 +18,13 @@ fn count_paths(edges: &[(usize, usize)], small_caves: Bitmap64, current: usize, 
     }
 }
 
-fn count_paths_part2(edges: &[(usize, usize)], small_caves: Bitmap64, current: usize, start: usize, end: usize, visited: Bitmap64, visited_small_twice: Bitmap64, found: &mut usize) {
+fn count_paths_part2(edges: &[(usize, usize)], small_caves: Bitmap64, current: usize, start: usize, end: usize, visited: Bitmap64, visited_small_twice: bool, found: &mut usize) {
     if current == end {
         *found += 1
     } else {
         let (visited, visited_small_twice) = if visited.is_set(current) {
             if small_caves.is_set(current) {
-                (visited, visited_small_twice.set(current))
+                (visited, true)
             } else {
                 (visited, visited_small_twice)
             }
@@ -35,8 +35,7 @@ fn count_paths_part2(edges: &[(usize, usize)], small_caves: Bitmap64, current: u
             if from == current {
                 let is_small = small_caves.is_set(to);
                 let is_visited = visited.is_set(to);
-                let is_visited_small_twice = visited_small_twice.is_set(to) || to == start;
-                if !is_visited || !is_small || (visited_small_twice.is_empty() && !is_visited_small_twice) {
+                if !is_visited || !is_small || !(visited_small_twice || to == start) {
                     count_paths_part2(edges, small_caves, to, start, end, visited, visited_small_twice, found);
                 }
             }
@@ -84,7 +83,7 @@ pub fn main() -> Result<()> {
     println!("Part1: {}", part1);
 
     let mut part2 = 0_usize;
-    count_paths_part2(&edges, small_mask, start_id, start_id, end_id, Bitmap64::default(), Bitmap64::default(), &mut part2);
+    count_paths_part2(&edges, small_mask, start_id, start_id, end_id, Bitmap64::default(), false, &mut part2);
 
     println!("Part2: {}", part2);
 
