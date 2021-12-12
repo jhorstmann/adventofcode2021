@@ -63,6 +63,51 @@ impl Display for Error {
 
 impl std::error::Error for Error {}
 
+#[derive(Debug,Clone,Copy,Default,Eq, PartialEq)]
+pub struct Bitmap64(u64);
+
+impl Bitmap64 {
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.0.count_ones() as usize
+    }
+
+    #[inline]
+    pub fn is_set(&self, value: usize) -> bool {
+        self.0 & (1<<value) != 0
+    }
+
+    #[inline]
+    pub fn set_mut(&mut self, value: usize) {
+        self.0 |= 1 << value;
+    }
+
+    #[inline]
+    pub fn unset_mut(&mut self, value: usize) {
+        self.0 &= !(1 << value);
+    }
+
+    #[inline]
+    pub fn set(&self, value: usize) -> Self {
+        let mut result = *self;
+        result.set_mut(value);
+        result
+    }
+
+    #[inline]
+    pub fn unsset(&self, value: usize) -> Self {
+        let mut result = *self;
+        result.unset_mut(value);
+        result
+    }
+
+}
+
 pub fn read_lines(file: &str) -> Result<Vec<String>> {
     let path = Path::new(file);
     let io = File::open(path)?;

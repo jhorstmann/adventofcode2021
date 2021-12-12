@@ -1,15 +1,15 @@
 use std::collections::HashMap;
 use adventofcode2021::prelude::*;
 
-fn count_paths(edges: &[(usize, usize)], small_caves: u64, current: usize, end: usize, visited: u64, found: &mut usize) {
+fn count_paths(edges: &[(usize, usize)], small_caves: Bitmap64, current: usize, end: usize, visited: Bitmap64, found: &mut usize) {
     if current == end {
         *found += 1
     } else {
-        let visited = visited | (1 << current);
+        let visited = visited.set(current);
         for (from, to) in edges.iter().copied() {
             if from == current {
-                let is_small = small_caves & (1 << to) != 0;
-                let is_visited = visited & (1 << to) != 0;
+                let is_small = small_caves.is_set(to);
+                let is_visited = visited.is_set(to);
                 if !is_small || !is_visited {
                     count_paths(edges, small_caves, to, end, visited, found);
                 }
@@ -18,25 +18,25 @@ fn count_paths(edges: &[(usize, usize)], small_caves: u64, current: usize, end: 
     }
 }
 
-fn count_paths_part2(edges: &[(usize, usize)], small_caves: u64, current: usize, start: usize, end: usize, visited: u64, visited_small_twice: u64, found: &mut usize) {
+fn count_paths_part2(edges: &[(usize, usize)], small_caves: Bitmap64, current: usize, start: usize, end: usize, visited: Bitmap64, visited_small_twice: Bitmap64, found: &mut usize) {
     if current == end {
         *found += 1
     } else {
-        let (visited, visited_small_twice) = if visited & (1<<current) != 0 {
-            if small_caves & (1<<current) != 0 {
-                (visited, visited_small_twice | (1 << current))
+        let (visited, visited_small_twice) = if visited.is_set(current) {
+            if small_caves.is_set(current) {
+                (visited, visited_small_twice.set(current))
             } else {
                 (visited, visited_small_twice)
             }
         } else {
-            (visited | (1 << current), visited_small_twice)
+            (visited.set(current), visited_small_twice)
         };
         for (from, to) in edges.iter().copied() {
             if from == current {
-                let is_small = small_caves & (1 << to) != 0;
-                let is_visited = visited & (1 << to) != 0;
-                let is_visited_small_twice = visited_small_twice & (1 << to) != 0 || to == start;
-                if !is_visited || !is_small || (visited_small_twice == 0 && !is_visited_small_twice) {
+                let is_small = small_caves.is_set(to);
+                let is_visited = visited.is_set(to);
+                let is_visited_small_twice = visited_small_twice.is_set(to) || to == start;
+                if !is_visited || !is_small || (visited_small_twice.is_empty() && !is_visited_small_twice) {
                     count_paths_part2(edges, small_caves, to, start, end, visited, visited_small_twice, found);
                 }
             }
@@ -76,15 +76,15 @@ pub fn main() -> Result<()> {
             Some(ch) if ch.is_ascii_lowercase() => Some(*value),
             _ => None
         }
-    }).fold(0_u64, |a, id| a | (1 << id));
+    }).fold(Bitmap64::default(), |a, id| a.set(id));
 
     let mut part1 = 0_usize;
-    count_paths(&edges, small_mask, start_id, end_id, 0_u64, &mut part1);
+    count_paths(&edges, small_mask, start_id, end_id, Bitmap64::default(), &mut part1);
 
     println!("Part1: {}", part1);
 
     let mut part2 = 0_usize;
-    count_paths_part2(&edges, small_mask, start_id, start_id, end_id, 0_u64, 0_u64, &mut part2);
+    count_paths_part2(&edges, small_mask, start_id, start_id, end_id, Bitmap64::default(), Bitmap64::default(), &mut part2);
 
     println!("Part2: {}", part2);
 
