@@ -5,6 +5,12 @@ use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::str::Utf8Error;
 
+// See https://en.wikipedia.org/wiki/Block_Elements
+pub const BLOCK_SOLID: char = '\u{2588}';
+pub const BLOCK_LIGHT: char = '\u{2591}';
+pub const BLOCK_MEDIUM: char = '\u{2592}';
+pub const BLOCK_DARK: char = '\u{2593}';
+
 #[derive(Debug)]
 pub enum Error {
     Io(std::io::Error),

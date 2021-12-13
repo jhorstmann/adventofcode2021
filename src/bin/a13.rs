@@ -70,10 +70,10 @@ pub fn main() -> Result<()> {
         return Err(Error::General("Negative coordinate".into()));
     }
 
-    let mut code = vec![vec![b'.'; max_x as usize + 1]; max_y as usize + 1];
+    let mut code = vec![vec![BLOCK_LIGHT; max_x as usize + 1]; max_y as usize + 1];
 
     for (x, y) in points.into_iter() {
-        code[y as usize][x as usize] = b'#';
+        code[y as usize][x as usize] = BLOCK_SOLID;
     }
 
     println!();
