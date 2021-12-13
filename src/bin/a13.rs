@@ -79,7 +79,8 @@ pub fn main() -> Result<()> {
     println!();
     for y in 0..max_y as usize + 1 {
         for x in 0..max_x as usize + 1 {
-            print!("{}", code[y][x] as char)
+            let ch = code[y][x] as char;
+            print!("{}{}", ch, ch)
         }
         println!();
     }
