@@ -20,7 +20,7 @@ fn bitunpack(x: usize) -> (u8, u8) {
 const BITPACK_MAX: usize = bitpack(b'Z', b'Z');
 
 pub fn main() -> Result<()> {
-    let mut lines = include_str!("../../data/a14_example.txt").lines();
+    let mut lines = include_str!("../../data/a14_input.txt").lines();
     let start = lines.next().ok_or(Error::EmptyIterator)?.as_bytes().to_vec();
     let _empty = lines.next().ok_or(Error::EmptyIterator)?;
     let rules = lines.map(|line| {
@@ -59,7 +59,6 @@ pub fn main() -> Result<()> {
     eprintln!("N: {}", histogram[b'N' as usize]);
     println!("Part1: {}", part1);
 
-
     let mut pair_histogram = vec![0_usize; BITPACK_MAX+1];
 
     start.array_windows().for_each(|[a, b]| {
@@ -67,16 +66,16 @@ pub fn main() -> Result<()> {
     });
     let mut next_pair_histogram = pair_histogram.clone();
 
-    for i in 0..10 {
-        // next_histogram.clear();
+    for i in 1..=40 {
+        next_pair_histogram.fill(0);
         for (j, count) in pair_histogram.iter().enumerate() {
             if *count > 0 {
                 let (a, b) = bitunpack(j);
                 if let Some(to_insert) = rules.get(&[a,b]) {
-                    dbg!(a as char,b as char,*to_insert as char);
                     next_pair_histogram[bitpack(a, *to_insert)] += *count;
                     next_pair_histogram[bitpack(*to_insert, b)] += *count;
-                    next_pair_histogram[bitpack(a, b)] -= *count;
+                } else {
+                    next_pair_histogram[bitpack(a, b)] = *count;
                 }
             }
         }
@@ -84,24 +83,24 @@ pub fn main() -> Result<()> {
         std::mem::swap(&mut pair_histogram, &mut next_pair_histogram);
     }
 
-    histogram.fill(0);
+    let mut histogram1 = [0_usize; 256];
+    let mut histogram2 = [0_usize; 256];
 
-    for (j, count) in pair_histogram.iter().enumerate() {
+    for (i, count) in pair_histogram.iter().enumerate() {
         if *count > 0 {
-            let (a, b) = bitunpack(j);
-            histogram[a as usize] += 1;
-            histogram[b as usize] += 1;
+            let (a, b) = bitunpack(i);
+            histogram1[a as usize] += *count;
+            histogram2[b as usize] += *count;
         }
     }
-
-    let part2 = histogram.iter().max().unwrap_or(&0) - histogram.iter().filter(|c| **c > 0).min().unwrap_or(&0);
+    let part2a = histogram1.iter().max().unwrap_or(&0) - histogram1.iter().filter(|c| **c > 0).min().unwrap_or(&0);
+    let part2b = histogram2.iter().max().unwrap_or(&0) - histogram2.iter().filter(|c| **c > 0).min().unwrap_or(&0);
 
     eprintln!("B: {}", histogram[b'B' as usize]);
     eprintln!("C: {}", histogram[b'C' as usize]);
     eprintln!("H: {}", histogram[b'H' as usize]);
     eprintln!("N: {}", histogram[b'N' as usize]);
-    println!("Part2: {}", part2);
-
+    println!("Part2: {} or {}", part2a, part2b);
 
     Ok(())
 }
