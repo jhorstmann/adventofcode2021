@@ -1,3 +1,4 @@
+use std::array::TryFromSliceError;
 use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -44,6 +45,12 @@ impl From<Utf8Error> for Error {
 impl From<std::convert::Infallible> for Error {
     fn from(_e: std::convert::Infallible) -> Self {
         panic!("Infallible error should never occur")
+    }
+}
+
+impl From<TryFromSliceError> for Error {
+    fn from(e: TryFromSliceError) -> Self {
+        Error::General(e.to_string())
     }
 }
 
