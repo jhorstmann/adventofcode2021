@@ -9,9 +9,8 @@ const fn bitpack(a: u8, b: u8) -> usize {
 }
 
 #[inline]
-fn bitunpack(x: usize) -> (u8, u8) {
+const fn bitunpack(x: usize) -> (u8, u8) {
     let a = x % 32;
-    assert!(a < 32, "{}, {}", x, a);
     let b = (x / 32) % 32;
     (a as u8 + b'A', b as u8 + b'A')
 }
