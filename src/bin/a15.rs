@@ -1,3 +1,5 @@
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
 use adventofcode2021::prelude::*;
 
 fn part1(map: &[Vec<u8>]) -> usize {
@@ -25,63 +27,34 @@ fn part1(map: &[Vec<u8>]) -> usize {
     last - first
 }
 
-fn part2_recursive(map: &[Vec<u8>], memo: &mut [Vec<usize>], visited: &mut [Vec<bool>], x: usize, y: usize) -> usize {
-    let value = memo[y][x];
-    if value > 0 {
-        return value as usize;
-    }
+fn part2<'a>(map: &[Vec<u8>]) -> usize {
+    let mut min_sum = map.iter().map(|row| vec![usize::MAX; row.len()]).collect::<Vec<_>>();
 
-    // let sum = sum + map[y][x] as usize;
-    if x == 0 && y == 0 {
-        return 0;
-    }
-
-    visited[y][x] = true;
-
-    let mut values = Vec::with_capacity(4);
-    if y > 0  {
-        values.push(part2_recursive(map, memo, visited, x, y-1));
-    }
-    if x > 0 {
-        values.push(part2_recursive(map, memo, visited, x-1, y));
-    }
-    if y < map.len()-1 && !visited[y+1][x]{
-        values.push(part2_recursive(map, memo, visited, x, y+1));
-    }
-    if x < map[y].len()-1 && !visited[y][x+1]{
-        values.push(part2_recursive(map, memo, visited, x+1, y));
-    }
-
-    let min = *values.iter().min().unwrap() + map[y][x] as usize;
-    // dbg!(x,y,min);
-    memo[y][x] = min;
-    min
-}
-
-fn part2<'a>(map: Vec<Vec<u8>>) -> usize {
-    let mut memo = map.iter().map(|row| vec![0_usize; row.len()]).collect::<Vec<_>>();
-    let mut visited = map.iter().map(|row| vec![false; row.len()]).collect::<Vec<_>>();
-
-
-    let handle = std::thread::Builder::new()
-        .stack_size(512*1024*1024)
-        .spawn(move || part2_recursive(&map, &mut memo, &mut visited, map.last().map(|row| row.len()-1).unwrap_or(0), map.len()-1)).unwrap();
-
-    let res = handle.join().unwrap();
-
-    /*
-    for y in 0..memo.len() {
-        for x in 0..memo[y].len() {
-            let value = memo[y][x];
-            eprint!("{:4}", value)
+    let mut q = BinaryHeap::new();
+    q.push((Reverse(0), 0, 0));
+    while let Some((Reverse(sum), x, y)) = q.pop() {
+        let sum = sum + map[y][x] as usize;
+        if sum < min_sum[y][x] {
+            min_sum[y][x] = sum;
+            if y > 0  {
+                q.push((Reverse(sum), x, y-1));
+            }
+            if x > 0  {
+                q.push((Reverse(sum), x-1, y));
+            }
+            if y < map.len()-1  {
+                q.push((Reverse(sum), x, y+1));
+            }
+            if x < map[y].len()-1  {
+                q.push((Reverse(sum), x+1, y));
+            }
         }
-        eprintln!();
     }
-    eprintln!();
-*/
 
+    let last = min_sum.last().map(|row| row.last()).flatten().unwrap();
+    let first = min_sum[0][0];
 
-    res
+    last - first
 }
 
 pub fn main() -> Result<()> {
@@ -91,17 +64,17 @@ pub fn main() -> Result<()> {
         .collect::<Vec<_>>();
 
     println!("Part 1: {}", part1(&map));
-    // println!("Part 1 (rec): {}", part2(map));
+    println!("Part 1: {}", part2(&map));
 
     // let map = vec![vec![9_usize]];
 
     let mut bigmap: Vec<Vec<u8>> = Vec::with_capacity(map.len()*5);
     for i1 in 0..5 {
-        for (y, row) in map.iter().enumerate() {
+        for (_y, row) in map.iter().enumerate() {
             let mut bigrow = Vec::with_capacity(row.len()*5);
             for i2 in 0..5 {
-                for (x, value) in row.iter().copied().enumerate() {
-                    let new_value = (value as usize + i1 + i2);
+                for (_x, value) in row.iter().copied().enumerate() {
+                    let new_value = value as usize + i1 + i2;
                     let new_value = if new_value > 9 {
                         new_value - 9
                     } else {
@@ -126,7 +99,7 @@ pub fn main() -> Result<()> {
     // 2970 to high
 
     println!("Part 2: {}", part1(&bigmap));
-    println!("Part 2 (rec): {}", part2(bigmap));
+    println!("Part 2: {}", part2(&bigmap));
 
     Ok(())
 }
