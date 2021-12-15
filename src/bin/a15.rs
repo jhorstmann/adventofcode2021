@@ -27,26 +27,26 @@ fn part1(map: &[Vec<u8>]) -> usize {
     last - first
 }
 
-fn part2<'a>(map: &[Vec<u8>]) -> usize {
+fn part2(map: &[Vec<u8>]) -> usize {
     let mut min_sum = map.iter().map(|row| vec![usize::MAX; row.len()]).collect::<Vec<_>>();
 
-    let mut q = BinaryHeap::new();
-    q.push((Reverse(0), 0, 0));
-    while let Some((Reverse(sum), x, y)) = q.pop() {
+    let mut queue = BinaryHeap::new();
+    queue.push((Reverse(0), 0, 0));
+    while let Some((Reverse(sum), x, y)) = queue.pop() {
         let sum = sum + map[y][x] as usize;
         if sum < min_sum[y][x] {
             min_sum[y][x] = sum;
             if y > 0  {
-                q.push((Reverse(sum), x, y-1));
+                queue.push((Reverse(sum), x, y-1));
             }
             if x > 0  {
-                q.push((Reverse(sum), x-1, y));
+                queue.push((Reverse(sum), x-1, y));
             }
             if y < map.len()-1  {
-                q.push((Reverse(sum), x, y+1));
+                queue.push((Reverse(sum), x, y+1));
             }
             if x < map[y].len()-1  {
-                q.push((Reverse(sum), x+1, y));
+                queue.push((Reverse(sum), x+1, y));
             }
         }
     }
