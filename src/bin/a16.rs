@@ -1,5 +1,4 @@
 use adventofcode2021::prelude::*;
-use std::str::from_utf8;
 
 #[derive(Debug, Clone, PartialEq)]
 enum Packet {
@@ -17,9 +16,12 @@ enum Packet {
 fn parse_hex(input: &str) -> Vec<bool> {
     input
         .bytes()
-        .map(|b| format!("{:04b}", u8::from_str_radix(from_utf8(&[b]).unwrap(), 16).unwrap()).into_bytes())
-        .flatten()
-        .map(|b| b == b'1')
+        .flat_map(|b| {
+            let digit = (b as char).to_digit(16).expect("hex digit");
+            (0..4).rev().map(move |i| {
+                (digit & (1 << i)) != 0
+            })
+        })
         .collect()
 }
 
