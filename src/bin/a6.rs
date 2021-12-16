@@ -48,16 +48,18 @@ pub fn main() -> Result<()> {
     let data = include_str!("../../data/a6_input.txt");
 
     let ages = data
+        .trim()
         .split(",")
         .map(|n| Ok(u32::from_str(n)?))
         .collect::<Result<Vec<u32>>>()?;
 
     println!("After  18 Days: {}", part1(&ages, 18));
     println!("After  80 Days: {}", part1(&ages, 80));
+    println!();
 
     println!("Part 2 optimized version");
     for days in [18, 80, 256] {
-        println!("After {} Days: {}", days, part2(&ages, days));
+        println!("After {:3} Days: {}", days, part2(&ages, days));
     }
 
     Ok(())
