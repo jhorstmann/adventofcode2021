@@ -18,9 +18,7 @@ fn parse_hex(input: &str) -> Vec<bool> {
         .bytes()
         .flat_map(|b| {
             let digit = (b as char).to_digit(16).expect("hex digit");
-            (0..4).rev().map(move |i| {
-                (digit & (1 << i)) != 0
-            })
+            (0..4).rev().map(move |i| (digit & (1 << i)) != 0)
         })
         .collect()
 }
@@ -112,10 +110,10 @@ fn evaluate(packet: &Packet) -> u64 {
     match packet {
         Packet::Number { value, .. } => *value,
         Packet::Operator { op_type, data, .. } => match op_type {
-            0 => data.iter().map(|p| evaluate(p)).sum(),
-            1 => data.iter().map(|p| evaluate(p)).product(),
-            2 => data.iter().map(|p| evaluate(p)).min().unwrap(),
-            3 => data.iter().map(|p| evaluate(p)).max().unwrap(),
+            0 => data.iter().map(evaluate).sum(),
+            1 => data.iter().map(evaluate).product(),
+            2 => data.iter().map(evaluate).min().unwrap(),
+            3 => data.iter().map(evaluate).max().unwrap(),
             5 => (evaluate(&data[0]) > evaluate(&data[1])) as u64,
             6 => (evaluate(&data[0]) < evaluate(&data[1])) as u64,
             7 => (evaluate(&data[0]) == evaluate(&data[1])) as u64,
