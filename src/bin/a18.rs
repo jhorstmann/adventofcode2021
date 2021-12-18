@@ -1,10 +1,10 @@
 #![feature(box_patterns)]
-use std::fmt::Write;
+use adventofcode2021::prelude::*;
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::fmt::Write;
 use std::iter::{Copied, Peekable};
 use std::slice;
-use adventofcode2021::prelude::*;
 
 #[derive(Debug, PartialEq, Clone)]
 enum SnailfishNumber {
@@ -71,14 +71,10 @@ impl SnailfishNumber {
 
     fn explode(self: Box<Self>, level: usize) -> (Box<Self>, u32, u32, bool) {
         match (level >= 4, self) {
-            (true, box Pair(box Number(nleft), box Number(nright))) => {
-                (Box::new(Number(0)), nleft, nright, false)
-            }
-            (true, n) => {
-                (n, 0, 0, false)
-            }
-            (false, box Pair(left,mut right)) => {
-                let (mut left, nll, mut nlr , left_exploded) = left.explode(level + 1);
+            (true, box Pair(box Number(nleft), box Number(nright))) => (Box::new(Number(0)), nleft, nright, false),
+            (true, n) => (n, 0, 0, false),
+            (false, box Pair(left, mut right)) => {
+                let (mut left, nll, mut nlr, left_exploded) = left.explode(level + 1);
 
                 right.as_mut().add_left(&mut nlr);
 
@@ -86,13 +82,15 @@ impl SnailfishNumber {
 
                 left.as_mut().add_right(&mut nrl);
 
-                (Box::new(Pair(left, right)), nll+nrl, nrr+nlr, left_exploded || right_exploded)
+                (
+                    Box::new(Pair(left, right)),
+                    nll + nrl,
+                    nrr + nlr,
+                    left_exploded || right_exploded,
+                )
             }
-            (false, n @ box Number(_)) => {
-                (n, 0, 0, false)
-            }
+            (false, n @ box Number(_)) => (n, 0, 0, false),
         }
-
     }
 
     fn split(self: Box<Self>) -> (Box<Self>, bool) {
@@ -105,7 +103,7 @@ impl SnailfishNumber {
                 } else {
                     (Box::new(Number(n)), false)
                 }
-            },
+            }
             box Pair(left, right) => {
                 let (new_left, split) = left.split();
                 if split {
@@ -140,7 +138,7 @@ impl SnailfishNumber {
     fn magnitude(&self) -> u32 {
         match self {
             Number(n) => *n,
-            Pair(left, right) => left.magnitude()*3 + right.magnitude()*2
+            Pair(left, right) => left.magnitude() * 3 + right.magnitude() * 2,
         }
     }
 
@@ -149,7 +147,7 @@ impl SnailfishNumber {
         tmp.reduce()
     }
 
-    fn add_list(iter: impl Iterator<Item=Box<Self>>) -> Option<Box<Self>> {
+    fn add_list(iter: impl Iterator<Item = Box<Self>>) -> Option<Box<Self>> {
         iter.reduce(Self::add)
     }
 }
@@ -159,7 +157,10 @@ type Input<'a> = Peekable<Copied<slice::Iter<'a, u8>>>;
 fn expect(input: &mut Input, expected: u8) -> Result<()> {
     let next = input.next().ok_or(Error::EmptyIterator)?;
     if next != expected {
-        Err(Error::General(format!("Unexpected input '{}', expected '{}'", next as char, expected as char)))
+        Err(Error::General(format!(
+            "Unexpected input '{}', expected '{}'",
+            next as char, expected as char
+        )))
     } else {
         Ok(())
     }
@@ -183,14 +184,13 @@ fn parse(input: &mut Input) -> Result<SnailfishNumber> {
         }
         Some(n @ b'0'..=b'9') => {
             consume(input)?;
-            Ok(SnailfishNumber::Number((n-b'0') as u32))
+            Ok(SnailfishNumber::Number((n - b'0') as u32))
         }
-        Some(ch @ _) => {
-            Err(Error::General(format!("Unexpected input '{}', expected pair or number", ch as char)))
-        }
-        None => {
-            Err(Error::EmptyIterator)
-        }
+        Some(ch @ _) => Err(Error::General(format!(
+            "Unexpected input '{}', expected pair or number",
+            ch as char
+        ))),
+        None => Err(Error::EmptyIterator),
     }
 }
 
@@ -201,38 +201,78 @@ fn parse_str(input: &str) -> Result<SnailfishNumber> {
 }
 
 pub fn main() -> Result<()> {
+    assert_eq!(
+        parse_str("[[[[[9,8],1],2],3],4]")?.into_box().reduce(),
+        parse_str("[[[[0,9],2],3],4]")?.into_box()
+    );
+    assert_eq!(
+        parse_str("[7,[6,[5,[4,[3,2]]]]]")?.into_box().reduce(),
+        parse_str("[7,[6,[5,[7,0]]]]")?.into_box()
+    );
+    assert_eq!(
+        parse_str("[[6,[5,[4,[3,2]]]],1]")?.into_box().reduce(),
+        parse_str("[[6,[5,[7,0]]],3]")?.into_box()
+    );
+    assert_eq!(
+        parse_str("[[3,[2,[1,[7,3]]]],[6,[5,[4,[3,2]]]]]")?.into_box().reduce(),
+        parse_str("[[3,[2,[8,0]]],[9,[5,[7,0]]]]")?.into_box()
+    );
 
-    assert_eq!(parse_str("[[[[[9,8],1],2],3],4]")?.into_box().reduce(), parse_str("[[[[0,9],2],3],4]")?.into_box());
-    assert_eq!(parse_str("[7,[6,[5,[4,[3,2]]]]]")?.into_box().reduce(), parse_str("[7,[6,[5,[7,0]]]]")?.into_box());
-    assert_eq!(parse_str("[[6,[5,[4,[3,2]]]],1]")?.into_box().reduce(), parse_str("[[6,[5,[7,0]]],3]")?.into_box());
-    assert_eq!(parse_str("[[3,[2,[1,[7,3]]]],[6,[5,[4,[3,2]]]]]")?.into_box().reduce(), parse_str("[[3,[2,[8,0]]],[9,[5,[7,0]]]]")?.into_box());
-
-    assert_eq!(SnailfishNumber::add(parse_str("[[[[4,3],4],4],[7,[[8,4],9]]]")?.into_box(), parse_str("[1,1]")?.into_box()), parse_str("[[[[0,7],4],[[7,8],[6,0]]],[8,1]]")?.into_box());
-
+    assert_eq!(
+        SnailfishNumber::add(
+            parse_str("[[[[4,3],4],4],[7,[[8,4],9]]]")?.into_box(),
+            parse_str("[1,1]")?.into_box()
+        ),
+        parse_str("[[[[0,7],4],[[7,8],[6,0]]],[8,1]]")?.into_box()
+    );
 
     let expected = parse_str("[[[[1,1],[2,2]],[3,3]],[4,4]]")?.into_box();
-    let actual = SnailfishNumber::add_list([
-        "[1,1]",
-        "[2,2]",
-        "[3,3]",
-        "[4,4]",
-    ].iter().map(|n| parse_str(n).unwrap().into_box())).unwrap();
+    let actual = SnailfishNumber::add_list(
+        ["[1,1]", "[2,2]", "[3,3]", "[4,4]"]
+            .iter()
+            .map(|n| parse_str(n).unwrap().into_box()),
+    )
+    .unwrap();
 
-assert_eq!(actual, expected);
+    assert_eq!(actual, expected);
 
+    let example_number = SnailfishNumber::add_list(
+        include_str!("../../data/a18_example.txt")
+            .lines()
+            .map(|line| parse_str(line).unwrap().into_box()),
+    )
+    .unwrap();
 
-    let example_number = SnailfishNumber::add_list(include_str!("../../data/a18_example.txt").lines().map(|line| parse_str(line).unwrap().into_box())).unwrap();
-
-    assert_eq!(example_number, parse_str("[[[[6,6],[7,6]],[[7,7],[7,0]]],[[[7,7],[7,7]],[[7,8],[9,9]]]]")?.into_box());
+    assert_eq!(
+        example_number,
+        parse_str("[[[[6,6],[7,6]],[[7,7],[7,0]]],[[[7,7],[7,7]],[[7,8],[9,9]]]]")?.into_box()
+    );
     assert_eq!(4140, example_number.magnitude());
 
-    let numbers = include_str!("../../data/a18_input.txt").lines().map(|line| Ok(parse_str(line)?.into_box())).collect::<Result<Vec<_>>>()?;
+    let numbers = include_str!("../../data/a18_input.txt")
+        .lines()
+        .map(|line| Ok(parse_str(line)?.into_box()))
+        .collect::<Result<Vec<_>>>()?;
     let number = SnailfishNumber::add_list(numbers.clone().into_iter()).unwrap();
 
     // println!("{}", number);
-    println!("Part {}", number.magnitude());
+    let magnitude = number.magnitude();
+    println!("Part 1: {}", magnitude);
 
+    let mut max = 0;
 
+    for i in 0..numbers.len() {
+        for j in 0..numbers.len() {
+            if i != j {
+                let magsum = SnailfishNumber::add(numbers[i].clone(), numbers[j].clone()).magnitude();
+                if magsum > max {
+                    max = magsum;
+                }
+            }
+        }
+    }
+
+    println!("Part 2: {}", max);
 
     Ok(())
 }
