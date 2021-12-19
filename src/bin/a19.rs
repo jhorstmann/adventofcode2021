@@ -1,4 +1,5 @@
 #![feature(array_windows)]
+#![feature(int_abs_diff)]
 
 use adventofcode2021::prelude::*;
 
@@ -75,6 +76,7 @@ const fn matrix_mul(a: &Matrix, b: &Matrix) -> Matrix {
     m
 }
 
+#[allow(unused)]
 const fn rotate_axis(v: &Vector, angle: i32) -> Matrix {
     let s = int_sin(angle);
     let c = int_cos(angle);
@@ -136,17 +138,6 @@ fn normalize_coordinates(coordinates: &mut [Vector]) -> Option<Vector> {
     }
 }
 
-fn delta_coordinates(coordinates: &[Vector]) -> Vec<Vector> {
-    let mut result = Vec::with_capacity(coordinates.len());
-    if !coordinates.is_empty() {
-        result.push([0; 3]);
-        coordinates.array_windows().for_each(|[[x1, y1, z1], [x2, y2, z2]]| {
-            result.push([x2-x1, y2-y1, z2-z1]);
-        })
-    }
-    result
-}
-
 fn rotate_coordinates(coordinates: &mut [Vector], m: &Matrix) {
     coordinates.iter_mut().for_each(|v| {
         *v = transform(v, m);
@@ -159,7 +150,6 @@ fn translate_coordinates(coordinates: &mut [Vector], v: &Vector) {
         *y += v[1];
         *z += v[2];
     });
-
 }
 
 pub fn main() -> Result<()> {
@@ -180,8 +170,7 @@ pub fn main() -> Result<()> {
     rotations.sort();
     rotations.dedup();
 
-    // dbg!(rotations.len());
-
+    assert_eq!(rotations.len(), 24);
 
     let mut scanners = include_str!("../../data/a19_input.txt").split("\n\n").map(|scanner| {
         let mut lines = scanner.lines();
@@ -195,20 +184,12 @@ pub fn main() -> Result<()> {
     }).collect::<Vec<_>>();
 
     let scanner_len = scanners.len();
-    dbg!(&scanner_len);
-    // dbg!(scanners.iter().map(|s| s.len()).collect::<Vec<_>>());
-
-
-    // let mut normalized_scanners = scanners.into_iter().map(|mut scanner| {
-    //     let offset = normalize_coordinates(&mut scanner).expect("at least one coordinate");
-    //     scanner
-    // }).collect::<Vec<_>>();
 
     let mut first_coords = scanners.remove(0);
     normalize_coordinates(&mut first_coords);
 
-    let mut aligned : Vec<Vec<Vector>> = Vec::with_capacity(scanner_len);
-    aligned.push(first_coords);
+    let mut aligned : Vec<(Vec<Vector>, Vector)> = Vec::with_capacity(scanner_len);
+    aligned.push((first_coords, [0, 0, 0]));
 
     while !scanners.is_empty() {
 
@@ -216,10 +197,8 @@ pub fn main() -> Result<()> {
             rotations.iter().find_map(|rotate_matrix| {
                 let mut coords = coords.clone();
                 rotate_coordinates(&mut coords, rotate_matrix);
-                // let offset = normalize_coordinates(&mut coords).expect("at least one coordinate");
-                // let mut rotated_offset = transform(&offset, rotate_matrix);
 
-                aligned.iter().find_map(|aligned_coords| {
+                aligned.iter().find_map(|(aligned_coords, _)| {
                     aligned_coords.iter().find_map(|ac| {
                         coords.iter().find_map(|rc| {
                             let count_intersect = aligned_coords.iter().filter(|a| coords.iter().any(|r| {
@@ -227,40 +206,40 @@ pub fn main() -> Result<()> {
                             })).count();
                             if count_intersect >= 12 {
                                 let offset = [ac[0]-rc[0], ac[1]-rc[1], ac[2]-rc[2]];
-                                Some((aligned_coords, offset))
+                                Some(offset)
                             } else {
                                 None
                             }
                         })
                     })
 
-                }).map(|(aligned_coords, offset)| {
-                    // rotated_offset[0] += offset_a[0] - offset_or[0];
-                    // rotated_offset[1] += offset_a[1] - offset_or[1];
-                    // rotated_offset[2] += offset_a[2] - offset_or[2];
+                }).map(|offset| {
                     translate_coordinates(&mut coords, &offset);
-                    (i, coords)
+                    (i, coords, offset)
                 })
             })
         });
 
-        // dbg!(&aligned);
-
-        if let Some((index, coords)) = found {
-            aligned.push(coords);
+        if let Some((index, coords, offset)) = found {
+            aligned.push((coords, offset));
             scanners.remove(index);
         } else {
             panic!("Found no matching scanners");
         }
     }
 
-    let mut deduplicated = aligned.into_iter().flatten().collect::<Vec<_>>();
+    let scanner_positions = aligned.iter().map(|(_, offset)| *offset).collect::<Vec<_>>();
+    let mut deduplicated = aligned.into_iter().map(|(coords, _)| coords).flatten().collect::<Vec<_>>();
     deduplicated.sort();
     deduplicated.dedup();
 
-    dbg!(&deduplicated);
-    dbg!(&deduplicated.len());
+    println!("Part1: {}", deduplicated.len());
 
+    let max_manhattan = scanner_positions.iter().map(|v1| scanner_positions.iter().map(|v2| {
+        v1[0].abs_diff(v2[0]) + v1[1].abs_diff(v2[1]) + v1[2].abs_diff(v2[2])
+    })).flatten().max().expect("max");
+
+    println!("Part2: {}", max_manhattan);
 
     Ok(())
 }
