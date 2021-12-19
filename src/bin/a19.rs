@@ -203,28 +203,33 @@ pub fn main() -> Result<()> {
     while !scanners.is_empty() {
         let found = scanners.iter().enumerate().find_map(|(i, coords)| {
             rotations.iter().find_map(|rotate_matrix| {
-                let mut coords = coords.clone();
-                rotate_coordinates(&mut coords, rotate_matrix);
+                let mut rotated_coords = coords.clone();
+                rotate_coordinates(&mut rotated_coords, rotate_matrix);
 
-                aligned.iter().find_map(|(aligned_coords, _)| {
-                    aligned_coords.iter().find_map(|ac| {
-                        coords.iter().find_map(|rc| {
-                            let count_intersect = aligned_coords.iter().filter(|a| coords.iter().any(|r| {
-                                a[0]-ac[0] == r[0]-rc[0] && a[1]-ac[1] == r[1]-rc[1] && a[2]-ac[2] == r[2]-rc[2]
-                            })).count();
-                            if count_intersect >= 12 {
-                                let offset = [ac[0]-rc[0], ac[1]-rc[1], ac[2]-rc[2]];
-                                Some(offset)
-                            } else {
-                                None
-                            }
+                aligned
+                    .iter()
+                    .find_map(|(aligned_coords, _)| {
+                        // try to align on all possible pairs of beacons and count the overlap
+                        aligned_coords.iter().find_map(|ac| {
+                            rotated_coords.iter().find_map(|rc| {
+                                let count_intersect = aligned_coords
+                                    .iter()
+                                    .filter(|a| rotated_coords.iter().any(|r| (0..3).all(|j| a[j] - ac[j] == r[j] - rc[j])))
+                                    .take(12) // stop once we found 12 matches
+                                    .count();
+                                if count_intersect >= 12 {
+                                    let offset = [ac[0] - rc[0], ac[1] - rc[1], ac[2] - rc[2]];
+                                    Some(offset)
+                                } else {
+                                    None
+                                }
+                            })
                         })
                     })
-
-                }).map(|offset| {
-                    translate_coordinates(&mut coords, &offset);
-                    (i, coords, offset)
-                })
+                    .map(|offset| {
+                        translate_coordinates(&mut rotated_coords, &offset);
+                        (i, rotated_coords, offset)
+                    })
             })
         });
 
@@ -252,6 +257,7 @@ pub fn main() -> Result<()> {
         .map(|v1| {
             scanner_positions
                 .iter()
+                .filter(|v2| !std::ptr::eq(v1, *v2))
                 .map(|v2| v1[0].abs_diff(v2[0]) + v1[1].abs_diff(v2[1]) + v1[2].abs_diff(v2[2]))
         })
         .flatten()
