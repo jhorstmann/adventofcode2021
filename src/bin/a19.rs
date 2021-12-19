@@ -119,7 +119,7 @@ const fn transform(v: &Vector, m: &Matrix) -> Vector {
 
 
 fn normalize_coordinates(coordinates: &mut [Vector]) -> Option<Vector> {
-    coordinates.sort();
+    // coordinates.sort();
     if let Some((first, rest)) = coordinates.split_first_mut() {
         rest.iter_mut().for_each(|v| {
             v[0] -= first[0];
@@ -183,7 +183,7 @@ pub fn main() -> Result<()> {
     // dbg!(rotations.len());
 
 
-    let mut scanners = include_str!("../../data/a19_example.txt").split("\n\n").map(|scanner| {
+    let mut scanners = include_str!("../../data/a19_input.txt").split("\n\n").map(|scanner| {
         let mut lines = scanner.lines();
         let header = lines.next().expect("header line");
         assert!(header.starts_with("--- scanner "));
@@ -206,11 +206,9 @@ pub fn main() -> Result<()> {
 
     let mut first_coords = scanners.remove(0);
     normalize_coordinates(&mut first_coords);
-    let first_delta = delta_coordinates(&first_coords);
-    dbg!(&first_delta);
 
-    let mut aligned : Vec<(Vec<Vector>, Vec<Vector>)> = Vec::with_capacity(scanner_len);
-    aligned.push((first_coords.clone(), first_delta));
+    let mut aligned : Vec<Vec<Vector>> = Vec::with_capacity(scanner_len);
+    aligned.push(first_coords);
 
     while !scanners.is_empty() {
 
@@ -218,40 +216,50 @@ pub fn main() -> Result<()> {
             rotations.iter().find_map(|rotate_matrix| {
                 let mut coords = coords.clone();
                 rotate_coordinates(&mut coords, rotate_matrix);
-                let offset = normalize_coordinates(&mut coords).expect("at least one coordinate");
-                let delta_coords = delta_coordinates(&coords);
-                dbg!(aligned.len());
-                dbg!(&delta_coords);
-                let mut rotated_offset = transform(&offset, rotate_matrix);
+                // let offset = normalize_coordinates(&mut coords).expect("at least one coordinate");
+                // let mut rotated_offset = transform(&offset, rotate_matrix);
 
-                aligned.iter().find_map(|(aligned_coords, aligned_coords_delta)| {
-                    let count_intersect = aligned_coords_delta.iter().filter(|tmp| delta_coords.contains(tmp)).count();
-                    dbg!(count_intersect);
-                    if count_intersect >= 4 {
-                        Some(aligned_coords)
-                    } else {
-                        None
-                    }
-                }).map(|aligned_coords| {
-                    rotated_offset[0] += aligned_coords[0][0];
-                    rotated_offset[1] += aligned_coords[0][1];
-                    rotated_offset[2] += aligned_coords[0][2];
-                    translate_coordinates(&mut coords, &rotated_offset);
-                    (i, coords, delta_coords)
+                aligned.iter().find_map(|aligned_coords| {
+                    aligned_coords.iter().find_map(|ac| {
+                        coords.iter().find_map(|rc| {
+                            let count_intersect = aligned_coords.iter().filter(|a| coords.iter().any(|r| {
+                                a[0]-ac[0] == r[0]-rc[0] && a[1]-ac[1] == r[1]-rc[1] && a[2]-ac[2] == r[2]-rc[2]
+                            })).count();
+                            if count_intersect >= 12 {
+                                let offset = [ac[0]-rc[0], ac[1]-rc[1], ac[2]-rc[2]];
+                                Some((aligned_coords, offset))
+                            } else {
+                                None
+                            }
+                        })
+                    })
+
+                }).map(|(aligned_coords, offset)| {
+                    // rotated_offset[0] += offset_a[0] - offset_or[0];
+                    // rotated_offset[1] += offset_a[1] - offset_or[1];
+                    // rotated_offset[2] += offset_a[2] - offset_or[2];
+                    translate_coordinates(&mut coords, &offset);
+                    (i, coords)
                 })
             })
         });
 
-        dbg!(&aligned);
+        // dbg!(&aligned);
 
-        if let Some((index, coords, coords_delta)) = found {
-            aligned.push((coords, coords_delta));
+        if let Some((index, coords)) = found {
+            aligned.push(coords);
             scanners.remove(index);
         } else {
             panic!("Found no matching scanners");
         }
     }
 
+    let mut deduplicated = aligned.into_iter().flatten().collect::<Vec<_>>();
+    deduplicated.sort();
+    deduplicated.dedup();
+
+    dbg!(&deduplicated);
+    dbg!(&deduplicated.len());
 
 
     Ok(())
