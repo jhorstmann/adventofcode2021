@@ -45,6 +45,10 @@ pub fn main() -> Result<()> {
     assert_eq!(get_index(&[b'.', b'.', b'.', b'#', b'.', b'.', b'.', b'#', b'.'], 3, 3, 1, 1), 0b000100010);
     assert_eq!(get_index(&[b'#', b'.', b'.', b'#', b'.', b'.', b'.', b'#', b'.'], 3, 3, 1, 1), 0b100100010);
     assert_eq!(get_index(&[b'#', b'.', b'#', b'#', b'.', b'.', b'.', b'#', b'.'], 3, 3, 1, 1), 0b101100010);
+    assert_eq!(get_index(&[b'.', b'.', b'.', b'.', b'.', b'.', b'.', b'.', b'.'], 3, 3, 1, 1), 0b000000000);
+    assert_eq!(get_index(&[b'.', b'.', b'.', b'.', b'.', b'.', b'.', b'.', b'.'], 3, 3, 0, 0), 0b000000000);
+    assert_eq!(get_index(&[b'.', b'.', b'.', b'.', b'.', b'.', b'.', b'.', b'.'], 3, 3, 2, 0), 0b000000000);
+    assert_eq!(get_index(&[b'.', b'.', b'.', b'.', b'.', b'.', b'.', b'.', b'.'], 3, 3, 2, 2), 0b000000000);
 
     let height = width;
 
@@ -52,7 +56,7 @@ pub fn main() -> Result<()> {
 
     {
         let original_width = width;
-        let border = 50;
+        let border = 102;
         let height = height+ border*2;
         let width = width+ border*2;
         let mut image = vec![b'.'; (width)*(height)];
@@ -65,29 +69,28 @@ pub fn main() -> Result<()> {
 
         let mut next_image = vec![0_u8; image.len()];
 
-        for _i in 0..50 {
-            for y in 0..width {
+        for i in 0..50 {
+            for y in 0..height {
                 for x in 0..width {
                     let mut idx = get_index(&image, width, height, y, x);
                     let replacement = lookup[idx];
                     next_image[y*width+x] = replacement;
-
                 }
             }
 
             // eprintln!();
             let mut count = 0_usize;
-            for y in 1..height-1 {
-                for x in 1..width {
+            for y in i..height-i {
+                for x in i..width-i {
                     let b = next_image[y * width + x];
-                    // eprint!("{}", b as char);
+                    eprint!("{}", b as char);
                     if b == b'#' {
                         count +=1;
                     }
                 }
-                // eprintln!();
+                eprintln!();
             }
-            // eprintln!();
+            eprintln!();
 
             println!("{}", count);
 
@@ -97,6 +100,7 @@ pub fn main() -> Result<()> {
 
     // part1: 5812 too high
     // part2: 22617 too high
+    // part2: 20808 too high
 
 
     Ok(())
