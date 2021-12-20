@@ -52,7 +52,7 @@ pub fn main() -> Result<()> {
 
     {
         let original_width = width;
-        let border = 32;
+        let border = 50;
         let height = height+ border*2;
         let width = width+ border*2;
         let mut image = vec![b'.'; (width)*(height)];
@@ -65,7 +65,7 @@ pub fn main() -> Result<()> {
 
         let mut next_image = vec![0_u8; image.len()];
 
-        for _i in 0..2 {
+        for _i in 0..50 {
             for y in 0..width {
                 for x in 0..width {
                     let mut idx = get_index(&image, width, height, y, x);
@@ -75,19 +75,19 @@ pub fn main() -> Result<()> {
                 }
             }
 
-            eprintln!();
+            // eprintln!();
             let mut count = 0_usize;
             for y in 1..height-1 {
                 for x in 1..width {
                     let b = next_image[y * width + x];
-                    eprint!("{}", b as char);
+                    // eprint!("{}", b as char);
                     if b == b'#' {
                         count +=1;
                     }
                 }
-                eprintln!();
+                // eprintln!();
             }
-            eprintln!();
+            // eprintln!();
 
             println!("{}", count);
 
@@ -95,7 +95,8 @@ pub fn main() -> Result<()> {
         }
     }
 
-    // 5812 too high
+    // part1: 5812 too high
+    // part2: 22617 too high
 
 
     Ok(())
