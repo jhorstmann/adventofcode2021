@@ -639,28 +639,13 @@ fn solve_z3(instructions: &[Instruction]) {
     }
 
     let mut cfg = Config::default();
-    // cfg.set_bool_param_value("parallel.enable", true);
     let ctx = Context::new(&cfg);
     // let goal = Goal::new(&ctx, true, false, false);
 
-    // Tactic::new(&ctx, "")
-    // let opt = Solver::new(&ctx);
     let opt = Optimize::new(&ctx);
 
     let mut inputs = (0..14).map(|i| ast::Int::new_const(&ctx, format!("input{:02}", i)))
         .collect::<Vec<_>>();
-
-    // (0..2).for_each(|i| inputs[i] = ast::Int::from_i64(&ctx, 1));
-
-    /*
-    let mut regs = [
-        ast::Int::from_i64(&ctx, 0),
-        ast::Int::from_i64(&ctx, 0),
-        ast::Int::from_i64(&ctx, 0),
-        ast::Int::from_i64(&ctx, 0),
-    ];
-
-     */
 
     let mut z = ast::Int::from_i64(&ctx, 0);
 
@@ -674,7 +659,7 @@ fn solve_z3(instructions: &[Instruction]) {
         match chunk {
             [
             Inp(W), Mul(X, Immediate(0)),
-            Add(X, Var(Z)), Mod(X, Immediate(26)), Div(Z, Immediate(divz @ (1 | 26))), Add(X, Immediate(addx )),
+            Add(X, Var(Z)), Mod(X, Immediate(26)), Div(Z, Immediate(divz @ (1 | 26))), Add(X, Immediate(addx)),
             // x = z%26 + addx
             // z /= divz
             Eql(X, Var(W)), Eql(X, Immediate(0)),
@@ -691,85 +676,40 @@ fn solve_z3(instructions: &[Instruction]) {
                 let w = &inputs[input];
                 // let x = &x._eq(w).ite(&ast::Int::from_i64(&ctx, 1), &ast::Int::from_i64(&ctx, 0));
                 // let x = &x._eq(&ast::Int::from_i64(&ctx, 0)).ite(&ast::Int::from_i64(&ctx, 1), &ast::Int::from_i64(&ctx, 0));
+                // z = &z * ((25_i64 * x) + 1_i64);
+                // z = z + (w + (*addy as i64)) * x;
 
                 let b = x._eq(w).not();
                 z = &z * &b.ite(&ast::Int::from_i64(&ctx, 26), &ast::Int::from_i64(&ctx, 1));
+                z = &z + &b.ite(&(w + (*addy as i64)), &ast::Int::from_i64(&ctx, 0));
 
-                // z = &z * ((25_i64 * x) + 1_i64);
-                z = &z + &b.ite( &(w + (*addy as i64)), &ast::Int::from_i64(&ctx, 0));
-                // z = z + (w + (*addy as i64)) * x;
                 input += 1;
 
                 // dbg!(divz, addx, addy);
-
             }
             _ => {
                 panic!("Unknown chunk {:?}", chunk);
             }
         }
+    }
 
-
-        /*
-            for instr in instructions.iter() {
-                match instr {
-                    Instruction::Inp(reg) => {
-                        regs[*reg as usize] = inputs[input].clone();
-                        input += 1;
-                    }
-                    Instruction::Add(reg, op) => {
-                        let src = std::mem::replace(&mut regs[*reg as usize], ast::Int::from_i64(&ctx, 0));
-                        regs[*reg as usize] = src + to_ast(&ctx, *op, &regs);
-                    }
-                    Instruction::Mul(reg, op) => {
-                        let src = std::mem::replace(&mut regs[*reg as usize], ast::Int::from_i64(&ctx, 0));
-                        regs[*reg as usize] = src * to_ast(&ctx, *op, &regs);
-                    }
-                    Instruction::Div(reg, op) => {
-                        let src = std::mem::replace(&mut regs[*reg as usize], ast::Int::from_i64(&ctx, 0));
-                        regs[*reg as usize] = src / to_ast(&ctx, *op, &regs);
-                    }
-                    Instruction::Mod(reg, op) => {
-                        let src = std::mem::replace(&mut regs[*reg as usize], ast::Int::from_i64(&ctx, 0));
-                        regs[*reg as usize] = src % to_ast(&ctx, *op, &regs);
-                    }
-                    Instruction::Eql(reg, op) => {
-                        let src = std::mem::replace(&mut regs[*reg as usize], ast::Int::from_i64(&ctx, 0));
-                        let eq = src._eq(&to_ast(&ctx, *op, &regs));
-                        regs[*reg as usize] = eq.ite(&ast::Int::from_i64(&ctx, 1), &ast::Int::from_i64(&ctx, 0));
-
-                    }
-                }
-         */
-            }
-
-
-    // dbg!("ast ready");
-    // dbg!(opt.get_model());
-
-    // let z = &regs[Register::Z as usize].simplify();
     z = z.simplify();
-    // opt.assert(&z._eq(&ast::Int::from_i64(&ctx, 0)));
-    // dbg!("simplified", &z);
-    // opt.assert(&inputs[0]._eq(&ast::Int::from_i64(&ctx, 6)));
-    // opt.assert(&inputs[1]._eq(&ast::Int::from_i64(&ctx, 5)));
-    // opt.assert(&inputs[2]._eq(&ast::Int::from_i64(&ctx, 9)));
-    for input in inputs.iter().skip(0) {
+
+    for input in inputs.iter() {
         opt.assert(&input.ge(&ast::Int::from_i64(&ctx, 1)));
         opt.assert(&input.le(&ast::Int::from_i64(&ctx, 9)));
     }
-    // opt.assert(&inputs[13]._eq(&ast::Int::from_i64(&ctx, 9)));
-    opt.assert(&z._eq(&ast::Int::from_i64(&ctx, 0)));
     opt.assert(&z._eq(&ast::Int::from_i64(&ctx, 0)));
 
-    let num = inputs.iter().fold(ast::Int::from_i64(&ctx, 0), |a, input| (a * 10_i64) + input);
-    // opt.assert(&num.ge(&ast::Int::from_i64(&ctx, 65911695311329)));
-    // dbg!(&num);
-    // dbg!("maximizing");
-    opt.minimize(&num);
-    // opt.maximize(&inputs[0]);
-    while let SatResult::Sat = opt.check(&[]) {
+    // let num = inputs.iter().rfold(ast::Int::from_i64(&ctx, 0), |a, input| (a * 10_i64) + input);
+    let num = inputs.iter().enumerate().fold(ast::Int::from_i64(&ctx, 0), |a, (i, input)| {
+        a + input * 10_i64.pow((13-i) as u32)
+    });
+    dbg!(&num);
+    opt.maximize(&num);
+    if let SatResult::Sat = opt.check(&[]) {
         let mdl = opt.get_model().expect("model");
-        dbg!(&mdl);
+        // dbg!(&mdl);
         /*
         for input in inputs.iter() {
             let e = mdl.eval(input, true);
@@ -785,23 +725,17 @@ fn solve_z3(instructions: &[Instruction]) {
             }
             num
         }).collect::<Vec<_>>();
-        dbg!(&nums);
+        let string_value = nums.iter().map(|d| (*d as u8 + b'0') as char).collect::<String>();
 
-        let num_value = nums.iter().fold(0_i64, |a, n| {
-            (a * 10_i64) + *n as i64
-        });
-        // let num_value = mdl.eval(&num, true).expect("num").as_i64().expect("num value");
-        println!("{}", num_value);
+        println!("{}", string_value);
 
         let mut cpu = CpuState::default();
         cpu.execute(&instructions, &nums.try_into().unwrap()).unwrap();
         println!("valid = {}", cpu.valid_state());
 
-        opt.assert(&num.lt(&ast::Int::from_i64(&ctx, num_value)));
+        // opt.assert(&num.gt(&ast::Int::from_i64(&ctx, num_value)));
         // dbg!(mdl.eval(&num, true));
         // 65911695311329 too low
-        // 96357999941996
-        // 96357999941996
         // 69914999975369
     }
 }
