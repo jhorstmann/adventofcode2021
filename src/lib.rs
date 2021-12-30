@@ -1,5 +1,5 @@
 use std::array::TryFromSliceError;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
@@ -76,7 +76,7 @@ impl Display for Error {
 
 impl std::error::Error for Error {}
 
-#[derive(Debug,Clone,Copy,Default,Eq, PartialEq)]
+#[derive(Clone,Copy,Default,Eq, PartialEq)]
 pub struct Bitmap64(u64);
 
 impl Bitmap64 {
@@ -113,12 +113,84 @@ impl Bitmap64 {
     }
 
     #[inline]
-    pub fn unsset(&self, value: usize) -> Self {
+    pub fn unset(&self, value: usize) -> Self {
         let mut result = *self;
         result.unset_mut(value);
         result
     }
 
+    #[inline]
+    pub fn as_u64(&self) -> u64 {
+        self.0
+    }
+
+    #[inline]
+    pub fn and(&self, other: &Bitmap64) -> Self {
+        Bitmap64(self.0 & other.0)
+    }
+
+    #[inline]
+    pub fn and_not(&self, other: &Bitmap64) -> Self {
+        Bitmap64(self.0 & !other.0)
+    }
+
+    #[inline]
+    pub fn or(&self, other: &Bitmap64) -> Self {
+        Bitmap64(self.0 | other.0)
+    }
+
+    #[inline]
+    pub fn iter(&self) -> Bitmap64Iter {
+        Bitmap64Iter(self.0)
+    }
+}
+
+impl Debug for Bitmap64 {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("Bitmap64({:064b}, {})", self.0, self.0))
+    }
+}
+
+impl From<u64> for Bitmap64 {
+    fn from(mask: u64) -> Self {
+        Bitmap64(mask)
+    }
+}
+
+impl FromIterator<usize> for Bitmap64 {
+    fn from_iter<T: IntoIterator<Item=usize>>(iter: T) -> Self {
+        let mut bitmap = Bitmap64(0);
+        for elem in iter {
+            assert!(elem <= 64);
+            bitmap.set_mut(elem);
+        }
+        bitmap
+    }
+}
+
+impl IntoIterator for Bitmap64 {
+    type Item = usize;
+    type IntoIter = Bitmap64Iter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+pub struct Bitmap64Iter(u64);
+
+impl Iterator for Bitmap64Iter {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.0 == 0 {
+            None
+        } else {
+            let tz = self.0.trailing_zeros();
+            self.0 &= !(1<<tz);
+            Some(tz as usize)
+        }
+    }
 }
 
 pub fn read_lines(file: &str) -> Result<Vec<String>> {
@@ -197,4 +269,18 @@ pub mod prelude {
     pub use std::str::FromStr;
 
     pub use regex::Regex;
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Bitmap64;
+
+    #[test]
+    fn test_bitmap_iter() {
+        let bitmap = vec![0,1, 4, 5, 7].into_iter().collect::<Bitmap64>();
+        assert_eq!(bitmap.0, 0b10110011);
+        let vec = bitmap.into_iter().collect::<Vec<_>>();
+        assert_eq!(vec, vec![0,1, 4, 5, 7]);
+
+    }
 }
