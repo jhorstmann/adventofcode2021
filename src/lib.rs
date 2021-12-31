@@ -152,6 +152,7 @@ impl Debug for Bitmap64 {
 }
 
 impl From<u64> for Bitmap64 {
+    #[inline]
     fn from(mask: u64) -> Self {
         Bitmap64(mask)
     }
@@ -172,6 +173,7 @@ impl IntoIterator for Bitmap64 {
     type Item = usize;
     type IntoIter = Bitmap64Iter;
 
+    #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }
@@ -182,6 +184,7 @@ pub struct Bitmap64Iter(u64);
 impl Iterator for Bitmap64Iter {
     type Item = usize;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.0 == 0 {
             None

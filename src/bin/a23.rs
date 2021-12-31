@@ -111,32 +111,10 @@ part2
 50192 too high
 */
 
-
-
-struct Edge {
-    from: usize,
-    to: usize,
-    path: Vec<usize>,
-}
-
-impl Edge {
-    fn new(from: usize, to: usize, path: Vec<usize>) -> Self {
-        Self {
-            from, to, path
-        }
-    }
-
-    fn len(&self) -> usize {
-        self.path.len()
-    }
-}
-
-
-
 pub fn main() -> Result<()> {
 
     #[rustfmt::skip]
-    let nodes = [
+    let _nodes = [
         00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10,
                 11,     12,     13,     14,
                 15,     16,     17,     18,
@@ -210,7 +188,7 @@ pub fn main() -> Result<()> {
     const COST: [usize; 4] = [1, 10, 100, 1000];
 
     #[rustfmt::skip]
-    let mut goal: Vec<(u8, u8)> = vec![
+    let _goal: Vec<(u8, u8)> = vec![
         (23, A), (19, A), (15, A), (11, A),
         (24, B), (20, B), (16, B), (12, B),
         (25, C), (21, C), (17, C), (13, C),
@@ -233,7 +211,7 @@ pub fn main() -> Result<()> {
     ];
 
     #[rustfmt::skip]
-    let mut input: Vec<(u8, u8)> = vec![
+    let input: Vec<(u8, u8)> = vec![
         (23, D), (19, D), (15, D), (11, C),
         (24, D), (20, B), (16, C), (12, C),
         (25, B), (21, A), (17, B), (13, A),
@@ -241,7 +219,7 @@ pub fn main() -> Result<()> {
     ];
 
     fn board_to_bitmap(board: &[(u8, u8)], color: u8) -> Bitmap64 {
-        board.iter().filter(|(p, c)| *c == color).map(|(p, _)| *p as usize).collect::<Bitmap64>()
+        board.iter().filter(|(_, c)| *c == color).map(|(p, _)| *p as usize).collect::<Bitmap64>()
     }
 
     let input = [
@@ -251,10 +229,6 @@ pub fn main() -> Result<()> {
         board_to_bitmap(&input, D).as_u64(),
     ];
 
-    let heuristic = |board: &[u64;4]| -> usize {
-        board.iter().map(|b| Bitmap64::from(*b)).zip(rooms_mask.iter()).fold(0_usize, |a, (b, r)| a + b.and(r).len())
-    };
-
     let mut queue = BinaryHeap::new();
 
     queue.push((Reverse(0_usize), input, 0_u64));
@@ -262,8 +236,6 @@ pub fn main() -> Result<()> {
     let mut i = 0_usize;
 
     let mut visited = HashSet::new();
-
-    let mut min_cost = usize::MAX;
 
     while let Some((Reverse(cost), board, room_was_dest)) = queue.pop() {
         if i % 20_000 == 0 {
@@ -273,14 +245,7 @@ pub fn main() -> Result<()> {
 
         if board == goal {
             println!("Cost: {}", cost);
-            if cost < min_cost {
-                min_cost = cost;
-            }
-            // break;
-        }
-
-        if cost > min_cost {
-            continue;
+            break;
         }
 
         if !visited.insert(board) {
@@ -299,9 +264,7 @@ pub fn main() -> Result<()> {
                 } else {
                     hallway_mask.and_not(&entry_mask)
                 };
-                // dbg!(possible_destinations);
                 let possible_destinations = possible_destinations.and_not(&occupied);
-                // dbg!(possible_destinations);
 
                 for dest in possible_destinations.iter() {
                     for (edge_from, edge_to, edge_path) in edges.iter() {
@@ -329,13 +292,9 @@ pub fn main() -> Result<()> {
                         }
                     }
                 }
-
             }
         }
     }
-
-    println!("Min Cost: {}", min_cost);
-
 
     Ok(())
 }
